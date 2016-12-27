@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1, user-scalable=0, maximum-scale=1, minimum-scale=1"
+    >
+    <title>在线列表</title>
+    <style>
+        *{
+            padding: 0;
+            margin: 0;
+        }
+        #container{
+            width: 100vw;
+            overflow: hidden;
+        }
+        #sl_div_container {
+            background-color: #ffffff;
+            width: 100%;
+            min-height: 100vh;
+        }
+        #msglog {
+            border: 1px solid #ccc;
+            width: 100%;
+            height: 60vh;
+            overflow-y: auto;
+            font-size: 16px;
+            background-color: white;
+        }
+        .sl_div_item {
+            width: 100vw;
+            border-bottom: solid 1px #dddddd;
+            padding: 1rem 0;
+            float: left;
+        }
+        ul {
+            width: 100vw;
+            display: inline-block;
+            font-size: 16px;
+            float: left;
+        }
+        li {
+            width: calc(100% - 6rem);
+            float: left;
+            list-style: none;
+            line-height: 1.6rem;
+        }
+        .sl_li_head {
+            width: 2.6rem;
+            height: 2.6rem;
+            margin: 0 0.8rem 0 1rem;
+        }
+        img {
+            width: 3rem;
+        }
+        .sl_li_name {
+            color: #2F6FAD;
+            display:block;
+            white-space:nowrap;
+            overflow:hidden;
+            text-overflow:ellipsis;
+        }
+        .sl_li_content {
+            color: #181818;
+            display:block;
+            white-space:nowrap;
+            overflow:hidden;
+            text-overflow:ellipsis;
+        }
+        #sl_text_content {
+            min-width: 100vw;
+            min-height: 100vh;
+            position: absolute;
+            left: 100vw;
+            top: 0;
+            -webkit-transition: all .3s ease-in;
+            -moz-transition: all .3s ease-in;
+            transition: all .3s ease-in;
+            background-color: rgba(0,0,0,0.6);
+        }
+        .sl_text_content_in{
+            left: 0 !important;
+        }
+        .sl_text_content_out{
+            left: 100vw !important;
+        }
+        p {
+            background-color: white;
+            line-height: 3rem;
+            text-align: center;
+        }
+        textarea {
+            width: 100vw;
+            height: 20vh;
+            font-size: 16px;
+        }
+        button {
+            font-size: 20px;
+            margin-right: 1rem;
+        }
+        .message {
+            line-height: 22px;
+        }
+
+        .message .user {
+            padding-right: 5px;
+            padding-left: 5px;
+            color: brown;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="sl_div_container">
+
+        </div>
+        <div id="sl_text_content">
+            <p id="talkTo"></p>
+            <div id="msglog">
+
+            </div>
+            <textarea id="sl_text_textarea" placeholder="在这里输入文字..." ></textarea>
+            <button id="sl_send_button">发送</button>
+            <button id="sl_close_button">关闭</button>
+        </div>
+    </div>
+<script src="/socket.io/socket.io.js"></script>
+<script src="/js/jquery.js"></script>
+<script>
+    $(function () {
+        var socket = io();
+        var username = localStorage.getItem('acct_chat_username');
+        var to = '';
+        var open = '';
+
+        // 加入房间
+        socket.on('connect', function () {
+            socket.emit('join', username);
+        });
+
+        // 监听系统消息
+        socket.on('sys', function (users) {
+            $("#sl_div_container").text('');
+            for(var user of users) {
+                if(user.name !== username) {
+                    $("#sl_div_container").append(
+                        "<div alt='"+user.name+"' class=\"sl_div_item\">"
+                        +"<ul>"
+                        +"<li class=\"sl_li_head\"><img src=\"/img/head.png\" /></li>"
+                        +"<li class=\"sl_li_name\">"+user.name+"</li>"
+                        +"<li id='"+user.name+"' class=\"sl_li_content\">暂无消息</li>"
+                        +"</ul>"
+                        +"</div>"
+                    )
+                }
+            }
+        });
+
+        // 监听私聊消息
+        socket.on('pmsg', function (from,to,msg)
+        {
+            if(open !== from) {
+                $("#"+from).text(msg);
+                $("#"+from).css("color", "red");
+            }else {
+                var message = '' +
+                    '<div class="message">' +
+                    '  <span class="user">' + from + ': </span>' +
+                    '  <span class="msg">' + msg + '</span>' +
+                    '</div>';
+                $('#msglog').append(message);
+                $('#msglog').scrollTop($('#msglog')[0].scrollHeight);
+            }
+        });
+
+        $(document).on('click', '.sl_div_item', function () {
+            to = $(this).attr('alt');
+            $("#sl_text_content").removeClass().addClass('sl_text_content_in');
+            open = to;
+            if($("#"+to).text()!=='暂无消息') {
+                var message = '' +
+                    '<div class="message">' +
+                    '  <span class="user">' + to + ': </span>' +
+                    '  <span class="msg">' + $("#"+to).text() + '</span>' +
+                    '</div>';
+                $("#msglog").append(message);
+            }else{
+                $("#msglog").text('');
+            }
+            $("#sl_text_textarea").val('');
+            $("#talkTo").text('正在与【'+to+'】聊天');
+        })
+
+        //发送消息
+        $("#sl_send_button").click(function () {
+            var msg = $("#sl_text_textarea").val();
+            $("#sl_text_textarea").val('');
+            socket.emit("private_message",username,to,msg);
+            var message = '' +
+                    '<div class="message">' +
+                    '  <span class="user">' + username + ': </span>' +
+                    '  <span class="msg">' + msg + '</span>' +
+                    '</div>';
+            $('#msglog').append(message);
+            $('#msglog').scrollTop($('#msglog')[0].scrollHeight);
+        })
+
+        //关闭消息窗
+        $("#sl_close_button").click(function () {
+            $("#sl_text_content").removeClass().addClass('sl_text_content_out')
+            $("#"+to).css("color", "#181818");
+            $("#"+to).text('暂无消息');
+            open = '';
+        })
+    });
+</script>
+</body>
+</html>

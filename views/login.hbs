@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1, user-scalable=0, maximum-scale=1, minimum-scale=1"
+    >
+    <title>注册</title>
+    <style>
+        * {
+            padding: 0;
+            margin: 0;
+        }
+        div {
+            min-height: 100vh;
+            min-width: 100vw;
+        }
+        input {
+            font-size: 20px;
+            width: 80%;
+            height: 30px;
+            border-radius: 0.4rem;
+            margin: 0.5rem auto;
+        }
+        button {
+            font-size: 30px;
+            margin: 1rem auto;
+        }
+    </style>
+</head>
+<body>
+    <div>
+        <input id="username" placeholder="请设置用户名" />
+        <input id="password" placeholder="请设置密码" />
+        <input id="nickname" placeholder="请设置聊天昵称" />
+        <button id="regist">注册</button>
+    </div>
+<script src="/js/jquery.js"></script>
+<script>
+    $(function () {
+        $("#regist").click(function() {
+            var username = $("#username").val();
+            var password = $("#password").val();
+            var nickname = $("#nickname").val();
+            $.post('/post/user',{username: username, password: password, nickname: nickname},function(ret) {
+                if(ret.code === 200) {
+                    if(ret.result === 'already') {
+                        localStorage.setItem('acct_chat_nickname', nickname);
+                        localStorage.setItem('acct_chat_username', username);
+                        localStorage.setItem('acct_chat_password', password);
+                        window.location.href = '/index';
+                    }else {
+                        localStorage.setItem('acct_chat_nickname', nickname);
+                        localStorage.setItem('acct_chat_username', username);
+                        localStorage.setItem('acct_chat_password', password);
+                        window.location.href = '/index';
+                    }
+                }else {
+                    alert('fail');
+                }
+            })
+        })
+    });
+</script>
+</body>
+</html>
